@@ -1,0 +1,37 @@
+name: daily-scan
+
+on:
+  schedule:
+    - cron: "30 7 * * 1-5"   # 平日 16:30 JST
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: 依存パッケージをインストール
+        run: pip install -r requirements.txt
+
+      - name: スキャン実行
+        env:
+          UNIVERSE: "プライム"
+          LIMIT: "300"
+          PERIOD: "2y"
+        run: python daily_scan.py
+
+      - name: 結果をコミット
+        run: |
+          git config user.name "auto-scan-bot"
+          git config user.email "actions@github.com"
+          git add data/scan_result.csv
+          git commit -m "自動スキャン $(date +'%Y-%m-%d')" || echo "変更なし"
+          git push
